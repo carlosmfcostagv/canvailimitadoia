@@ -3,25 +3,25 @@ import { z } from "zod";
 import { AIProviderService } from "./ai.server";
 
 export const enhancePromptFn = createServerFn({ method: "POST" })
-  .input(z.object({ prompt: z.string() }))
+  .validator((data: { prompt: string }) => z.object({ prompt: z.string() }).parse(data))
   .handler(async ({ data }) => {
     return AIProviderService.enhancePrompt(data.prompt);
   });
 
 export const generateImageFn = createServerFn({ method: "POST" })
-  .input(z.object({ prompt: z.string(), settings: z.any() }))
+  .validator((data: { prompt: string, settings: any }) => z.object({ prompt: z.string(), settings: z.any() }).parse(data))
   .handler(async ({ data }) => {
     return AIProviderService.generateImage(data);
   });
 
 export const generateVideoFn = createServerFn({ method: "POST" })
-  .input(z.object({ prompt: z.string(), settings: z.any() }))
+  .validator((data: { prompt: string, settings: any }) => z.object({ prompt: z.string(), settings: z.any() }).parse(data))
   .handler(async ({ data }) => {
     return AIProviderService.generateVideo(data);
   });
 
 export const generateStructuredPromptFn = createServerFn({ method: "POST" })
-  .input(z.object({ idea: z.string() }))
+  .validator((data: { idea: string }) => z.object({ idea: z.string() }).parse(data))
   .handler(async ({ data }) => {
     return AIProviderService.generateStructuredPrompt(data.idea);
   });
