@@ -1,4 +1,4 @@
-import { crypto } from 'crypto';
+// Server-side generation logic
 
 // In-memory store for simulation (in a real app, this would be a database)
 const generations = new Map<string, any>();

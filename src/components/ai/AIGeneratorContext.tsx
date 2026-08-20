@@ -11,6 +11,7 @@ export interface GenerationResult {
   url?: string;
   prompt: string;
   date: string;
+  progress?: number;
   settings?: any;
 }
 
@@ -19,6 +20,8 @@ interface AIGeneratorContextType {
   setActiveTab: (tab: GenerationType) => void;
   history: GenerationResult[];
   addToHistory: (result: GenerationResult) => void;
+  updateHistoryItem: (id: string, updates: Partial<GenerationResult>) => void;
+  removeFromHistory: (id: string) => void;
   sharedPrompt: string;
   setSharedPrompt: (prompt: string) => void;
   sharedImage: string | null;
