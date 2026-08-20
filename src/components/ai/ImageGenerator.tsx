@@ -9,7 +9,7 @@ import { enhancePromptFn, generateImageFn } from '@/lib/ai.functions'
 import { toast } from 'sonner'
 
 export function ImageGenerator() {
-  const { sharedPrompt, addToHistory, transferToTab } = useAIGenerator();
+  const { sharedPrompt, addToHistory } = useAIGenerator();
   const [prompt, setPrompt] = useState(sharedPrompt || '');
   const [loading, setLoading] = useState(false);
   
@@ -23,7 +23,7 @@ export function ImageGenerator() {
   const handleEnhance = async () => {
     if (!prompt) return;
     try {
-      const enhanced = await enhancePrompt({ prompt });
+      const enhanced = await enhancePrompt({ data: { prompt } });
       setPrompt(enhanced);
       toast.success("Prompt enhanced!");
     } catch (e) {
@@ -32,9 +32,13 @@ export function ImageGenerator() {
   };
 
   const handleGenerate = async () => {
+    if (!prompt) {
+      toast.error("Please enter a prompt");
+      return;
+    }
     setLoading(true);
     try {
-      const result = await generateImage({ prompt, settings: {} });
+      const result = await generateImage({ data: { prompt, settings: {} } });
       addToHistory(result);
       toast.success("Image generated!");
     } catch (e) {
@@ -77,7 +81,29 @@ export function ImageGenerator() {
               <option>Flux.1</option>
             </select>
           </div>
-          {/* ... other settings */}
+          <div className="space-y-1.5">
+            <Label className="text-xs">Aspect Ratio</Label>
+            <select className="w-full h-9 rounded-md border bg-background px-3 text-sm">
+              <option>1:1 Square</option>
+              <option>16:9 Landscape</option>
+              <option>9:16 Portrait</option>
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Style</Label>
+            <select className="w-full h-9 rounded-md border bg-background px-3 text-sm">
+              <option>Photorealistic</option>
+              <option>Cinematic</option>
+              <option>Digital Art</option>
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Count</Label>
+            <select className="w-full h-9 rounded-md border bg-background px-3 text-sm">
+              <option>1 image</option>
+              <option>2 images</option>
+            </select>
+          </div>
         </div>
 
         <Button size="lg" className="w-full gap-2 h-14 text-lg" onClick={handleGenerate} disabled={loading}>
