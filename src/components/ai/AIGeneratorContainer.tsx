@@ -12,15 +12,14 @@ function AIGeneratorInner() {
   const { activeTab, setActiveTab } = useAIGenerator();
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-8">
+    <div className="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-8 items-start">
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <Tabs 
-            value={activeTab} 
-            onValueChange={(v) => setActiveTab(v as GenerationType)}
-            className="w-full"
-          >
-            <div className="flex items-center justify-between mb-4">
+        <Tabs 
+          value={activeTab} 
+          onValueChange={(v) => setActiveTab(v as GenerationType)}
+          className="w-full"
+        >
+          <div className="flex items-center justify-between mb-4">
               <TabsList className="bg-muted/50 p-1 border">
                 <TabsTrigger value="i2v">Image to Video</TabsTrigger>
                 <TabsTrigger value="image">Image Generator</TabsTrigger>
@@ -47,8 +46,7 @@ function AIGeneratorInner() {
                 <PromptGenerator />
               </TabsContent>
             </div>
-          </Tabs>
-        </div>
+        </Tabs>
       </div>
 
       <aside className="space-y-6">

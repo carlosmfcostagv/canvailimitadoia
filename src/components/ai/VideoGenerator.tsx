@@ -12,6 +12,10 @@ export function VideoGenerator() {
   const { sharedPrompt, addToHistory } = useAIGenerator();
   const [prompt, setPrompt] = useState(sharedPrompt || '');
   const [loading, setLoading] = useState(false);
+  const [settings, setSettings] = useState({
+    model: 'Luma Dream Machine',
+    duration: '5s'
+  });
   
   const enhancePrompt = useServerFn(enhancePromptFn);
   const generateVideo = useServerFn(generateVideoFn);
@@ -38,7 +42,7 @@ export function VideoGenerator() {
     }
     setLoading(true);
     try {
-      const result = await generateVideo({ data: { prompt, settings: {} } });
+      const result = await generateVideo({ data: { prompt, settings } });
       addToHistory(result);
       toast.success("Video generation started!");
     } catch (e) {
@@ -76,14 +80,22 @@ export function VideoGenerator() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="space-y-1.5">
             <Label className="text-xs">Model</Label>
-            <select className="w-full h-9 rounded-md border bg-background px-3 text-sm">
+            <select 
+              className="w-full h-9 rounded-md border bg-background px-3 text-sm"
+              value={settings.model}
+              onChange={(e) => setSettings({...settings, model: e.target.value})}
+            >
               <option>Luma Dream Machine</option>
               <option>Runway Gen-3</option>
             </select>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Duration</Label>
-            <select className="w-full h-9 rounded-md border bg-background px-3 text-sm">
+            <select 
+              className="w-full h-9 rounded-md border bg-background px-3 text-sm"
+              value={settings.duration}
+              onChange={(e) => setSettings({...settings, duration: e.target.value})}
+            >
               <option>5s</option>
               <option>10s</option>
             </select>
