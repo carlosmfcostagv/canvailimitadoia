@@ -41,3 +41,9 @@ export const generateStructuredPromptFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     return AIProviderService.generateStructuredPrompt(data.idea);
   });
+
+export const getGenerationStatusFn = createServerFn({ method: "GET" })
+  .validator((data: { id: string }) => z.object({ id: z.string() }).parse(data))
+  .handler(async ({ data }) => {
+    return AIProviderService.getStatus(data.id);
+  });
