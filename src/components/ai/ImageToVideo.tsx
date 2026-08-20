@@ -13,6 +13,10 @@ export function ImageToVideo() {
   const { sharedPrompt, sharedImage, setSharedImage, addToHistory } = useAIGenerator();
   const [prompt, setPrompt] = useState(sharedPrompt || '');
   const [loading, setLoading] = useState(false);
+  const [settings, setSettings] = useState({
+    duration: '5 seconds',
+    motion: 'Medium'
+  });
   
   const enhancePrompt = useServerFn(enhancePromptFn);
   const generateVideo = useServerFn(generateVideoFn);
@@ -39,7 +43,7 @@ export function ImageToVideo() {
     }
     setLoading(true);
     try {
-      const result = await generateVideo({ data: { prompt, settings: { type: 'i2v' } } });
+      const result = await generateVideo({ data: { prompt, settings: { ...settings, type: 'i2v', image: sharedImage } } });
       addToHistory({ ...result, type: 'i2v' });
       toast.success("Animation started!");
     } catch (e) {
@@ -121,14 +125,22 @@ export function ImageToVideo() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="space-y-1.5">
             <Label className="text-xs">Duration</Label>
-            <select className="w-full h-9 rounded-md border bg-background px-3 text-sm">
+            <select 
+              className="w-full h-9 rounded-md border bg-background px-3 text-sm"
+              value={settings.duration}
+              onChange={(e) => setSettings({...settings, duration: e.target.value})}
+            >
               <option>5 seconds</option>
               <option>10 seconds</option>
             </select>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Motion</Label>
-            <select className="w-full h-9 rounded-md border bg-background px-3 text-sm">
+            <select 
+              className="w-full h-9 rounded-md border bg-background px-3 text-sm"
+              value={settings.motion}
+              onChange={(e) => setSettings({...settings, motion: e.target.value})}
+            >
               <option>Low</option>
               <option>Medium</option>
               <option>High</option>
