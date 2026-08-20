@@ -1,11 +1,52 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Wand2, PlayCircle } from 'lucide-react'
+import { useAIGenerator } from './AIGeneratorContext'
+import { useServerFn } from '@tanstack/react-start'
+import { enhancePromptFn, generateVideoFn } from '@/lib/ai.functions'
+import { toast } from 'sonner'
 
 export function VideoGenerator() {
-  const [prompt, setPrompt] = useState('')
+  const { sharedPrompt, addToHistory } = useAIGenerator();
+  const [prompt, setPrompt] = useState(sharedPrompt || '');
+  const [loading, setLoading] = useState(false);
+  
+  const enhancePrompt = useServerFn(enhancePromptFn);
+  const generateVideo = useServerFn(generateVideoFn);
+
+  useEffect(() => {
+    if (sharedPrompt) setPrompt(sharedPrompt);
+  }, [sharedPrompt]);
+
+  const handleEnhance = async () => {
+    if (!prompt) return;
+    try {
+      const enhanced = await enhancePrompt({ data: { prompt } });
+      setPrompt(enhanced);
+      toast.success("Prompt enhanced!");
+    } catch (e) {
+      toast.error("Failed to enhance prompt");
+    }
+  };
+
+  const handleGenerate = async () => {
+    if (!prompt) {
+      toast.error("Please enter a prompt");
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await generateVideo({ data: { prompt, settings: {} } });
+      addToHistory(result);
+      toast.success("Video generation started!");
+    } catch (e) {
+      toast.error("Generation failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -18,7 +59,7 @@ export function VideoGenerator() {
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <Label htmlFor="video-prompt">Video Prompt</Label>
-            <Button variant="ghost" size="sm" className="h-8 gap-2 text-primary">
+            <Button variant="ghost" size="sm" className="h-8 gap-2 text-primary" onClick={handleEnhance}>
               <Wand2 className="w-3.5 h-3.5" />
               Enhance
             </Button>
@@ -38,7 +79,6 @@ export function VideoGenerator() {
             <select className="w-full h-9 rounded-md border bg-background px-3 text-sm">
               <option>Luma Dream Machine</option>
               <option>Runway Gen-3</option>
-              <option>Kling AI</option>
             </select>
           </div>
           <div className="space-y-1.5">
@@ -48,25 +88,11 @@ export function VideoGenerator() {
               <option>10s</option>
             </select>
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Resolution</Label>
-            <select className="w-full h-9 rounded-md border bg-background px-3 text-sm">
-              <option>1080p</option>
-              <option>4K</option>
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Aspect Ratio</Label>
-            <select className="w-full h-9 rounded-md border bg-background px-3 text-sm">
-              <option>16:9</option>
-              <option>9:16</option>
-            </select>
-          </div>
         </div>
 
-        <Button size="lg" className="w-full gap-2 h-14 text-lg">
+        <Button size="lg" className="w-full gap-2 h-14 text-lg" onClick={handleGenerate} disabled={loading}>
           <PlayCircle className="w-5 h-5" />
-          GENERATE VIDEO
+          {loading ? 'Generating...' : 'GENERATE VIDEO'}
         </Button>
       </div>
     </div>

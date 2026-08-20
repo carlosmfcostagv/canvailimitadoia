@@ -1,13 +1,64 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Upload, Wand2, PlayCircle } from 'lucide-react'
+import { Upload, Wand2, PlayCircle, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAIGenerator } from './AIGeneratorContext'
+import { useServerFn } from '@tanstack/react-start'
+import { enhancePromptFn, generateVideoFn } from '@/lib/ai.functions'
+import { toast } from 'sonner'
 
 export function ImageToVideo() {
-  const [prompt, setPrompt] = useState('')
-  const [image, setImage] = useState<string | null>(null)
+  const { sharedPrompt, sharedImage, setSharedImage, addToHistory } = useAIGenerator();
+  const [prompt, setPrompt] = useState(sharedPrompt || '');
+  const [loading, setLoading] = useState(false);
+  
+  const enhancePrompt = useServerFn(enhancePromptFn);
+  const generateVideo = useServerFn(generateVideoFn);
+
+  useEffect(() => {
+    if (sharedPrompt) setPrompt(sharedPrompt);
+  }, [sharedPrompt]);
+
+  const handleEnhance = async () => {
+    if (!prompt) return;
+    try {
+      const enhanced = await enhancePrompt({ data: { prompt } });
+      setPrompt(enhanced);
+      toast.success("Prompt enhanced!");
+    } catch (e) {
+      toast.error("Failed to enhance prompt");
+    }
+  };
+
+  const handleGenerate = async () => {
+    if (!sharedImage) {
+      toast.error("Please upload an image first");
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await generateVideo({ data: { prompt, settings: { type: 'i2v' } } });
+      addToHistory({ ...result, type: 'i2v' });
+      toast.success("Animation started!");
+    } catch (e) {
+      toast.error("Generation failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSharedImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -20,7 +71,7 @@ export function ImageToVideo() {
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <Label htmlFor="i2v-prompt">Animation Prompt</Label>
-            <Button variant="ghost" size="sm" className="h-8 gap-2 text-primary">
+            <Button variant="ghost" size="sm" className="h-8 gap-2 text-primary" onClick={handleEnhance}>
               <Wand2 className="w-3.5 h-3.5" />
               Enhance
             </Button>
@@ -32,34 +83,37 @@ export function ImageToVideo() {
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
           />
-          <p className="text-xs text-muted-foreground">
-            Example: "The camera zooms in slowly while wind moves their hair."
-          </p>
         </div>
 
         <div className="space-y-2">
           <Label>Reference Image</Label>
           <div className={cn(
-            "border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center transition-colors cursor-pointer",
-            image ? "bg-accent/20 border-accent" : "hover:bg-accent/10 border-muted"
+            "border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center transition-colors cursor-pointer relative",
+            sharedImage ? "bg-accent/20 border-accent" : "hover:bg-accent/10 border-muted"
           )}>
-            {image ? (
+            {sharedImage ? (
               <div className="relative aspect-video w-full max-w-md rounded-lg overflow-hidden group">
-                <img src={image} alt="Preview" className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                  <Button variant="secondary" size="sm" onClick={() => setImage(null)}>Replace Image</Button>
-                </div>
+                <img src={sharedImage} alt="Preview" className="w-full h-full object-cover" />
+                <Button 
+                  variant="destructive" 
+                  size="icon" 
+                  className="absolute top-2 right-2 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => setSharedImage(null)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
               </div>
             ) : (
-              <div className="text-center space-y-2">
+              <label className="text-center space-y-2 cursor-pointer w-full">
+                <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
                   <Upload className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <p className="font-medium">Click or drag image to upload</p>
+                  <p className="font-medium">Click to upload image</p>
                   <p className="text-xs text-muted-foreground">JPG, PNG, WEBP supported</p>
                 </div>
-              </div>
+              </label>
             )}
           </div>
         </div>
@@ -73,34 +127,18 @@ export function ImageToVideo() {
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Resolution</Label>
-            <select className="w-full h-9 rounded-md border bg-background px-3 text-sm">
-              <option>1080p</option>
-              <option>2K</option>
-              <option>4K</option>
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Motion Score</Label>
+            <Label className="text-xs">Motion</Label>
             <select className="w-full h-9 rounded-md border bg-background px-3 text-sm">
               <option>Low</option>
               <option>Medium</option>
               <option>High</option>
             </select>
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Aspect Ratio</Label>
-            <select className="w-full h-9 rounded-md border bg-background px-3 text-sm">
-              <option>16:9</option>
-              <option>9:16</option>
-              <option>1:1</option>
-            </select>
-          </div>
         </div>
 
-        <Button size="lg" className="w-full gap-2 h-14 text-lg">
+        <Button size="lg" className="w-full gap-2 h-14 text-lg" onClick={handleGenerate} disabled={loading}>
           <PlayCircle className="w-5 h-5" />
-          GENERATE VIDEO
+          {loading ? 'Processing...' : 'GENERATE VIDEO'}
         </Button>
       </div>
     </div>

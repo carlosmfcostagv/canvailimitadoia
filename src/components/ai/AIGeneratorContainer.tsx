@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ImageToVideo } from './ImageToVideo'
 import { ImageGenerator } from './ImageGenerator'
@@ -7,11 +6,10 @@ import { PromptGenerator } from './PromptGenerator'
 import { GeneratedResults } from './GeneratedResults'
 import { Settings2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { AIGeneratorProvider, useAIGenerator, GenerationType } from './AIGeneratorContext'
 
-export type GenerationType = 'image' | 'video' | 'i2v' | 'prompt'
-
-export function AIGeneratorContainer() {
-  const [activeTab, setActiveTab] = useState<GenerationType>('i2v')
+function AIGeneratorInner() {
+  const { activeTab, setActiveTab } = useAIGenerator();
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-8">
@@ -57,5 +55,13 @@ export function AIGeneratorContainer() {
         <GeneratedResults />
       </aside>
     </div>
+  )
+}
+
+export function AIGeneratorContainer() {
+  return (
+    <AIGeneratorProvider>
+      <AIGeneratorInner />
+    </AIGeneratorProvider>
   )
 }
