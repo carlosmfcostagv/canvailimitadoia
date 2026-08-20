@@ -12,6 +12,12 @@ export function ImageGenerator() {
   const { sharedPrompt, addToHistory } = useAIGenerator();
   const [prompt, setPrompt] = useState(sharedPrompt || '');
   const [loading, setLoading] = useState(false);
+  const [settings, setSettings] = useState({
+    model: 'Stable Diffusion XL',
+    aspectRatio: '1:1 Square',
+    style: 'Photorealistic',
+    count: '1 image'
+  });
   
   const enhancePrompt = useServerFn(enhancePromptFn);
   const generateImage = useServerFn(generateImageFn);
@@ -38,7 +44,7 @@ export function ImageGenerator() {
     }
     setLoading(true);
     try {
-      const result = await generateImage({ data: { prompt, settings: {} } });
+      const result = await generateImage({ data: { prompt, settings } });
       addToHistory(result);
       toast.success("Image generated!");
     } catch (e) {
@@ -76,14 +82,22 @@ export function ImageGenerator() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="space-y-1.5">
             <Label className="text-xs">Model</Label>
-            <select className="w-full h-9 rounded-md border bg-background px-3 text-sm">
+            <select 
+              className="w-full h-9 rounded-md border bg-background px-3 text-sm"
+              value={settings.model}
+              onChange={(e) => setSettings({...settings, model: e.target.value})}
+            >
               <option>Stable Diffusion XL</option>
               <option>Flux.1</option>
             </select>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Aspect Ratio</Label>
-            <select className="w-full h-9 rounded-md border bg-background px-3 text-sm">
+            <select 
+              className="w-full h-9 rounded-md border bg-background px-3 text-sm"
+              value={settings.aspectRatio}
+              onChange={(e) => setSettings({...settings, aspectRatio: e.target.value})}
+            >
               <option>1:1 Square</option>
               <option>16:9 Landscape</option>
               <option>9:16 Portrait</option>
@@ -91,7 +105,11 @@ export function ImageGenerator() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Style</Label>
-            <select className="w-full h-9 rounded-md border bg-background px-3 text-sm">
+            <select 
+              className="w-full h-9 rounded-md border bg-background px-3 text-sm"
+              value={settings.style}
+              onChange={(e) => setSettings({...settings, style: e.target.value})}
+            >
               <option>Photorealistic</option>
               <option>Cinematic</option>
               <option>Digital Art</option>
@@ -99,7 +117,11 @@ export function ImageGenerator() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Count</Label>
-            <select className="w-full h-9 rounded-md border bg-background px-3 text-sm">
+            <select 
+              className="w-full h-9 rounded-md border bg-background px-3 text-sm"
+              value={settings.count}
+              onChange={(e) => setSettings({...settings, count: e.target.value})}
+            >
               <option>1 image</option>
               <option>2 images</option>
             </select>
