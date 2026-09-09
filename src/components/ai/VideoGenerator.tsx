@@ -7,6 +7,8 @@ import { useAIGenerator } from './AIGeneratorContext'
 import { useServerFn } from '@tanstack/react-start'
 import { enhancePromptFn, generateVideoFn } from '@/lib/ai.functions'
 import { toast } from 'sonner'
+import { CreditNotice } from '@/components/billing/CreditNotice'
+import { useConsumeCredits, useCostFor } from '@/hooks/useBilling'
 
 export function VideoGenerator() {
   const { sharedPrompt, addToHistory } = useAIGenerator();
@@ -19,6 +21,8 @@ export function VideoGenerator() {
   
   const enhancePrompt = useServerFn(enhancePromptFn);
   const generateVideo = useServerFn(generateVideoFn);
+  const { cost, enough } = useCostFor('video');
+  const consume = useConsumeCredits();
 
   useEffect(() => {
     if (sharedPrompt) setPrompt(sharedPrompt);
@@ -40,13 +44,18 @@ export function VideoGenerator() {
       toast.error("Please enter a prompt");
       return;
     }
+    if (!enough) {
+      toast.error(`Créditos insuficientes. Esta geração custa ${cost} créditos.`);
+      return;
+    }
     setLoading(true);
     try {
+      await consume.mutateAsync('video');
       const result = await generateVideo({ data: { prompt, settings } });
       addToHistory(result);
-      toast.success("Video generation started!");
+      toast.success(`Video generation started! -${cost} créditos`);
     } catch (e) {
-      toast.error("Generation failed");
+      toast.error(e instanceof Error ? e.message : "Generation failed");
     } finally {
       setLoading(false);
     }
@@ -102,9 +111,11 @@ export function VideoGenerator() {
           </div>
         </div>
 
-        <Button size="lg" className="w-full gap-2 h-14 text-lg" onClick={handleGenerate} disabled={loading}>
+        <CreditNotice operation="video" />
+
+        <Button size="lg" className="w-full gap-2 h-14 text-lg" onClick={handleGenerate} disabled={loading || !enough}>
           <PlayCircle className="w-5 h-5" />
-          {loading ? 'Generating...' : 'GENERATE VIDEO'}
+          {loading ? 'Generating...' : !enough ? 'CRÉDITOS INSUFICIENTES' : 'GENERATE VIDEO'}
         </Button>
       </div>
     </div>
