@@ -1,104 +1,115 @@
-// Server-side generation logic
+// Server-side generation logic backed by the Lovable AI gateway.
+// NOTE: server functions run on stateless workers, so nothing may be kept
+// in module memory between requests — every generation resolves synchronously.
 
-// In-memory store for simulation (in a real app, this would be a database)
-const generations = new Map<string, any>();
+const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+
+function apiKey() {
+  const key = process.env["LOVABLE_API_KEY"];
+  if (!key) throw new Error("Serviço de IA não configurado.");
+  return key;
+}
+
+async function callGateway(body: Record<string, unknown>) {
+  const res = await fetch(GATEWAY_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey()}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (res.status === 429) throw new Error("Limite de uso atingido. Tente novamente em instantes.");
+  if (res.status === 402) throw new Error("Créditos de IA esgotados no workspace.");
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("AI gateway error", res.status, text);
+    throw new Error("Falha ao gerar. Tente novamente.");
+  }
+  return res.json() as Promise<any>;
+}
+
+async function textCompletion(system: string, user: string) {
+  const json = await callGateway({
+    model: "google/gemini-2.5-flash",
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ],
+  });
+  return (json?.choices?.[0]?.message?.content ?? "").trim();
+}
+
+function newId() {
+  return Math.random().toString(36).slice(2, 10);
+}
 
 export const AIProviderService = {
-  async generateImage(params: any) {
-    console.log("Server: Generating image", params);
-    const id = Math.random().toString(36).substring(7);
-    
-    const generation = {
-      id,
-      type: 'image',
-      status: 'queued',
-      url: null,
+  async generateImage(params: { prompt: string; settings?: any }) {
+    const s = params.settings ?? {};
+    const styleHints = [s.style, s.aspectRatio, s.model].filter(Boolean).join(", ");
+    const prompt = styleHints ? `${params.prompt}. Style: ${styleHints}` : params.prompt;
+
+    const json = await callGateway({
+      model: "google/gemini-2.5-flash-image",
+      messages: [{ role: "user", content: prompt }],
+      modalities: ["image", "text"],
+    });
+
+    const url: string | undefined = json?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    if (!url) throw new Error("O modelo não retornou nenhuma imagem.");
+
+    return {
+      id: newId(),
+      type: "image",
+      status: "completed",
+      url,
       prompt: params.prompt,
-      settings: params.settings,
+      settings: s,
       date: new Date().toISOString(),
-      progress: 0
+      progress: 100,
     };
-    
-    generations.set(id, generation);
-    
-    // Simulate async processing
-    this.processGeneration(id);
-    
-    return generation;
   },
 
-  async generateVideo(params: any) {
-    console.log("Server: Generating video", params);
-    const id = Math.random().toString(36).substring(7);
-    
-    const generation = {
-      id,
-      type: params.settings?.type === 'i2v' ? 'i2v' : 'video',
-      status: 'queued',
-      url: null,
-      prompt: params.prompt,
-      settings: params.settings,
-      date: new Date().toISOString(),
-      progress: 0
-    };
-    
-    generations.set(id, generation);
-    
-    this.processGeneration(id);
-    
-    return generation;
+  async generateVideo(_params: { prompt: string; settings?: any }) {
+    throw new Error(
+      "A geração de vídeo ainda não está disponível: nenhum provedor de vídeo foi conectado. Seus créditos não foram debitados.",
+    );
   },
 
-  async processGeneration(id: string) {
-    const steps = [
-      { status: 'processing', progress: 20 },
-      { status: 'processing', progress: 50 },
-      { status: 'processing', progress: 85 },
-      { status: 'completed', progress: 100 }
-    ];
-
-    for (const step of steps) {
-      await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 2000));
-      const gen = generations.get(id);
-      if (!gen) break;
-
-      // 5% chance of failure at any step
-      if (Math.random() < 0.05) {
-        generations.set(id, { ...gen, status: 'failed', progress: step.progress });
-        break;
-      }
-
-      const updated = { ...gen, ...step };
-      if (step.status === 'completed') {
-        updated.url = gen.type === 'image' 
-          ? 'https://images.unsplash.com/photo-1614728263952-84ea256f9679?w=800&auto=format&fit=crop'
-          : 'https://www.w3schools.com/html/mov_bbb.mp4';
-      }
-      generations.set(id, updated);
-      if (step.status === 'completed') break;
-    }
-  },
-
-  async getStatus(id: string) {
-    return generations.get(id) || null;
+  async getStatus(_id: string) {
+    // Generations complete synchronously; nothing to poll.
+    return null;
   },
 
   async enhancePrompt(prompt: string) {
-    console.log("Server: Enhancing prompt", prompt);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return `Enhanced version of: ${prompt}. Adding cinematic lighting, 8k resolution, highly detailed textures, and professional color grading.`;
+    const enhanced = await textCompletion(
+      "You rewrite short ideas into rich, professional generation prompts. Cover subject, action, motion, environment, lighting, camera movement, cinematic style, composition and quality. Answer with the prompt only, no preamble, max 120 words.",
+      prompt,
+    );
+    return enhanced || prompt;
   },
 
   async generateStructuredPrompt(idea: string) {
-    console.log("Server: Generating structured prompt", idea);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    return {
-      mainPrompt: `A professional cinematic visualization of ${idea}`,
-      style: "Cinematic, Photorealistic",
-      mood: "Dramatic, Atmospheric",
-      lighting: "Volumetric, High-contrast",
-      camera: "Wide angle, steady cam",
-      negativePrompt: "low quality, blurry, distorted, watermark"
-    };
-  }
+    const raw = await textCompletion(
+      'You are a prompt engineer. Reply with ONLY valid JSON, no markdown fences, with keys: mainPrompt, style, mood, environment, lighting, motion, camera, quality, negativePrompt. Values are short English strings.',
+      idea,
+    );
+    try {
+      return JSON.parse(raw.replace(/^```(?:json)?|```$/g, "").trim());
+    } catch {
+      return {
+        mainPrompt: raw || `A professional cinematic visualization of ${idea}`,
+        style: "Cinematic, Photorealistic",
+        mood: "Dramatic",
+        environment: "-",
+        lighting: "Volumetric, high contrast",
+        motion: "Smooth",
+        camera: "Wide angle",
+        quality: "8k, highly detailed",
+        negativePrompt: "low quality, blurry, distorted, watermark",
+      };
+    }
+  },
 };

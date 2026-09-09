@@ -52,9 +52,9 @@ export function ImageGenerator() {
     }
     setLoading(true);
     try {
-      await consume.mutateAsync('image');
       const result = await generateImage({ data: { prompt, settings } });
       addToHistory(result);
+      await consume.mutateAsync('image');
       toast.success(`Image generated! -${cost} créditos`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Generation failed");
