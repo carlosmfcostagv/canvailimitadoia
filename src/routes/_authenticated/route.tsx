@@ -29,13 +29,9 @@ function AuthenticatedLayout() {
   const { data: billing } = useBilling()
 
   const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'AI Generator', href: '/ai-generator', icon: Sparkles },
     { name: 'Planos e Créditos', href: '/plans', icon: CreditCard },
-    { name: 'History', href: '/history', icon: History },
-    { name: 'Projects', href: '/projects', icon: Zap },
-    { name: 'Settings', href: '/settings', icon: Settings },
-  ]
+  ] as const
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
