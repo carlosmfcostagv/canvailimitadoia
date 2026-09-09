@@ -1,15 +1,5 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from '@tanstack/react-router'
-import {
-  LayoutDashboard,
-  Sparkles,
-  Settings,
-  History,
-  User,
-  CreditCard,
-  ShieldCheck,
-  Zap,
-  LogOut,
-} from 'lucide-react'
+import { Sparkles, User, CreditCard, ShieldCheck, LogOut } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useBilling } from '@/hooks/useBilling'
 import { Button } from '@/components/ui/button'
