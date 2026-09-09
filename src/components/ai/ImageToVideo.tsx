@@ -157,9 +157,11 @@ export function ImageToVideo() {
           </div>
         </div>
 
-        <Button size="lg" className="w-full gap-2 h-14 text-lg" onClick={handleGenerate} disabled={loading}>
+        <CreditNotice operation="i2v" />
+
+        <Button size="lg" className="w-full gap-2 h-14 text-lg" onClick={handleGenerate} disabled={loading || !enough}>
           <PlayCircle className="w-5 h-5" />
-          {loading ? 'Processing...' : 'GENERATE VIDEO'}
+          {loading ? 'Processing...' : !enough ? 'CRÉDITOS INSUFICIENTES' : 'GENERATE VIDEO'}
         </Button>
       </div>
     </div>
