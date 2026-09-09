@@ -201,6 +201,41 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_adjust_credits:
+        | {
+            Args: {
+              _admin_id: string
+              _amount: number
+              _reason: string
+              _user_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: { _amount: number; _reason: string; _user_id: string }
+            Returns: Json
+          }
+      admin_list_subscribers:
+        | {
+            Args: { _admin_id: string; _search?: string }
+            Returns: {
+              credits: number
+              email: string
+              full_name: string
+              id: string
+              updated_at: string
+            }[]
+          }
+        | {
+            Args: { _search?: string }
+            Returns: {
+              credits: number
+              email: string
+              full_name: string
+              id: string
+              updated_at: string
+            }[]
+          }
       bootstrap_user: { Args: never; Returns: undefined }
       consume_credits: { Args: { _operation: string }; Returns: Json }
       has_role: {

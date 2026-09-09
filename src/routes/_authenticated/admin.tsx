@@ -1,14 +1,23 @@
 import { useEffect, useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useServerFn } from '@tanstack/react-start'
+import { Coins, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
 import { billingQueryKey, useBilling } from '@/hooks/useBilling'
-import { updateCostFn, updatePlanFn, type GenerationCost, type Plan } from '@/lib/billing.functions'
+import {
+  adjustSubscriberCreditsFn,
+  listSubscribersFn,
+  updateCostFn,
+  updatePlanFn,
+  type GenerationCost,
+  type Plan,
+  type SubscriberCreditAccount,
+} from '@/lib/billing.functions'
 
 export const Route = createFileRoute('/_authenticated/admin')({
   component: AdminPage,
@@ -29,6 +38,14 @@ function AdminPage() {
   const qc = useQueryClient()
   const updatePlan = useServerFn(updatePlanFn)
   const updateCost = useServerFn(updateCostFn)
+  const listSubscribers = useServerFn(listSubscribersFn)
+  const adjustCredits = useServerFn(adjustSubscriberCreditsFn)
+  const [search, setSearch] = useState('')
+  const subscribersQuery = useQuery({
+    queryKey: ['admin-subscribers', search],
+    queryFn: () => listSubscribers({ data: { search } }),
+    enabled: data?.isAdmin === true,
+  })
 
   const savePlan = useMutation({
     mutationFn: (p: Plan) =>
@@ -57,6 +74,17 @@ function AdminPage() {
     onError: (e: Error) => toast.error(e.message),
   })
 
+  const adjustBalance = useMutation({
+    mutationFn: (input: { userId: string; amount: number; reason: string }) =>
+      adjustCredits({ data: input }),
+    onSuccess: () => {
+      toast.success('Créditos atualizados e registrados no histórico')
+      qc.invalidateQueries({ queryKey: ['admin-subscribers'] })
+      qc.invalidateQueries({ queryKey: billingQueryKey })
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+
   if (isLoading) return <div className="p-6 text-muted-foreground">Carregando...</div>
 
   if (!data?.isAdmin) {
@@ -78,6 +106,42 @@ function AdminPage() {
       </header>
 
       <section className="space-y-4">
+        <div>
+          <h2 className="text-xl font-semibold">Créditos dos assinantes</h2>
+          <p className="text-sm text-muted-foreground">Localize uma conta e libere ou retire créditos.</p>
+        </div>
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            className="pl-9"
+            placeholder="Buscar por nome ou e-mail"
+            aria-label="Buscar assinante"
+          />
+        </div>
+        {subscribersQuery.isLoading && <p className="text-sm text-muted-foreground">Carregando assinantes...</p>}
+        {subscribersQuery.isError && (
+          <p className="text-sm text-destructive">Não foi possível carregar os assinantes.</p>
+        )}
+        <div className="space-y-3">
+          {(subscribersQuery.data ?? []).map((subscriber) => (
+            <SubscriberCreditRow
+              key={subscriber.id}
+              subscriber={subscriber}
+              saving={adjustBalance.isPending}
+              onSave={(amount, reason) =>
+                adjustBalance.mutate({ userId: subscriber.id, amount, reason })
+              }
+            />
+          ))}
+        </div>
+        {subscribersQuery.data?.length === 0 && (
+          <p className="text-sm text-muted-foreground">Nenhum assinante encontrado.</p>
+        )}
+      </section>
+
+      <section className="space-y-4">
         <h2 className="text-xl font-semibold">Planos</h2>
         {data.plans.map((plan) => (
           <PlanRow key={plan.id} plan={plan} onSave={(p) => savePlan.mutate(p)} saving={savePlan.isPending} />
@@ -90,6 +154,72 @@ function AdminPage() {
           <CostRow key={cost.id} cost={cost} onSave={(c) => saveCost.mutate(c)} saving={saveCost.isPending} />
         ))}
       </section>
+    </div>
+  )
+}
+
+function SubscriberCreditRow({
+  subscriber,
+  saving,
+  onSave,
+}: {
+  subscriber: SubscriberCreditAccount
+  saving: boolean
+  onSave: (amount: number, reason: string) => void
+}) {
+  const [amount, setAmount] = useState(0)
+  const [reason, setReason] = useState('')
+
+  const submit = () => {
+    if (amount === 0) {
+      toast.error('Informe uma quantidade diferente de zero')
+      return
+    }
+    if (reason.trim().length < 3) {
+      toast.error('Informe o motivo do ajuste')
+      return
+    }
+    onSave(amount, reason.trim())
+    setAmount(0)
+    setReason('')
+  }
+
+  return (
+    <div className="rounded-xl border bg-card p-4 space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="font-medium">{subscriber.full_name || 'Assinante'}</p>
+          <p className="text-sm text-muted-foreground">{subscriber.email || 'E-mail não informado'}</p>
+        </div>
+        <div className="flex items-center gap-2 font-semibold">
+          <Coins className="h-4 w-4 text-primary" />
+          {subscriber.credits} créditos
+        </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-[140px_1fr_auto] sm:items-end">
+        <div className="space-y-1.5">
+          <Label className="text-xs">Quantidade</Label>
+          <Input
+            type="number"
+            value={amount}
+            onChange={(event) => setAmount(Number(event.target.value || 0))}
+            aria-label={`Quantidade para ${subscriber.email || subscriber.full_name || 'assinante'}`}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Motivo</Label>
+          <Input
+            value={reason}
+            maxLength={200}
+            onChange={(event) => setReason(event.target.value)}
+            placeholder="Ex.: pagamento confirmado"
+            aria-label={`Motivo do ajuste para ${subscriber.email || subscriber.full_name || 'assinante'}`}
+          />
+        </div>
+        <Button disabled={saving || amount === 0 || reason.trim().length < 3} onClick={submit}>
+          {amount > 0 ? 'Liberar créditos' : 'Retirar créditos'}
+        </Button>
+      </div>
     </div>
   )
 }

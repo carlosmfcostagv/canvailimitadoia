@@ -28,6 +28,36 @@ export type BillingState = {
   subscription: { plan_name: string; expires_at: string } | null;
 };
 
+export type SubscriberCreditAccount = {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+  credits: number;
+  updated_at: string;
+};
+
+async function requireAdmin(context: {
+  supabase: Parameters<typeof hasAdminRole>[0];
+  userId: string;
+}) {
+  const allowed = await hasAdminRole(context.supabase, context.userId);
+  if (!allowed) throw new Error("Acesso restrito a administradores");
+}
+
+async function hasAdminRole(
+  supabase: {
+    rpc: (name: "has_role", args: { _user_id: string; _role: "admin" }) => PromiseLike<{
+      data: boolean | null;
+      error: { message: string } | null;
+    }>;
+  },
+  userId: string,
+) {
+  const { data, error } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+  if (error) throw new Error(error.message);
+  return data === true;
+}
+
 export const getBillingStateFn = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<BillingState> => {
@@ -127,4 +157,44 @@ export const updateCostFn = createServerFn({ method: "POST" })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+export const listSubscribersFn = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { search?: string }) =>
+    z.object({ search: z.string().trim().max(120).optional() }).parse(data),
+  )
+  .handler(async ({ context, data }): Promise<SubscriberCreditAccount[]> => {
+    await requireAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: subscribers, error } = await supabaseAdmin.rpc("admin_list_subscribers", {
+      _admin_id: context.userId,
+      _search: data.search ?? "",
+    });
+    if (error) throw new Error(error.message);
+    return (subscribers ?? []) as SubscriberCreditAccount[];
+  });
+
+export const adjustSubscriberCreditsFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userId: string; amount: number; reason: string }) =>
+    z
+      .object({
+        userId: z.string().uuid(),
+        amount: z.number().int().min(-1000000).max(1000000).refine((value) => value !== 0),
+        reason: z.string().trim().min(3).max(200),
+      })
+      .parse(data),
+  )
+  .handler(async ({ context, data }) => {
+    await requireAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: result, error } = await supabaseAdmin.rpc("admin_adjust_credits", {
+      _admin_id: context.userId,
+      _user_id: data.userId,
+      _amount: data.amount,
+      _reason: data.reason,
+    });
+    if (error) throw new Error(error.message);
+    return result as { user_id: string; amount: number; credits: number };
   });
