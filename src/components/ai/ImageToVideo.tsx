@@ -22,6 +22,8 @@ export function ImageToVideo() {
   
   const enhancePrompt = useServerFn(enhancePromptFn);
   const generateVideo = useServerFn(generateVideoFn);
+  const { cost, enough } = useCostFor('i2v');
+  const consume = useConsumeCredits();
 
   useEffect(() => {
     if (sharedPrompt) setPrompt(sharedPrompt);
