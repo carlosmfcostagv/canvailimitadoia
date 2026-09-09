@@ -51,9 +51,9 @@ export function ImageToVideo() {
     }
     setLoading(true);
     try {
-      await consume.mutateAsync('i2v');
       const result = await generateVideo({ data: { prompt, settings: { ...settings, type: 'i2v', image: sharedImage } } });
       addToHistory({ ...result, type: 'i2v' });
+      await consume.mutateAsync('i2v');
       toast.success(`Animation started! -${cost} créditos`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Generation failed");

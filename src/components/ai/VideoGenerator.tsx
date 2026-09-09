@@ -50,9 +50,9 @@ export function VideoGenerator() {
     }
     setLoading(true);
     try {
-      await consume.mutateAsync('video');
       const result = await generateVideo({ data: { prompt, settings } });
       addToHistory(result);
+      await consume.mutateAsync('video');
       toast.success(`Video generation started! -${cost} créditos`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Generation failed");
