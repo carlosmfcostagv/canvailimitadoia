@@ -1,57 +1,12 @@
-import { useEffect, useRef } from 'react'
 import { Loader2, Download, Heart, Trash2, PlayCircle, Image as ImageIcon, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAIGenerator } from './AIGeneratorContext'
-import { useServerFn } from '@tanstack/react-start'
-import { getGenerationStatusFn } from '@/lib/ai.functions'
 import { toast } from 'sonner'
 
 export function GeneratedResults() {
-  const { history, updateHistoryItem, removeFromHistory, transferToTab } = useAIGenerator();
-  const getStatus = useServerFn(getGenerationStatusFn);
-  const pollingRef = useRef<Record<string, boolean>>({});
+  const { history, removeFromHistory, transferToTab } = useAIGenerator();
 
-  useEffect(() => {
-    history.forEach(item => {
-      if ((item.status === 'processing' || item.status === 'queued') && !pollingRef.current[item.id]) {
-        startPolling(item.id);
-      }
-    });
-  }, [history]);
-
-  const startPolling = async (id: string) => {
-    pollingRef.current[id] = true;
-    
-    const poll = async () => {
-      try {
-        const data = await getStatus({ data: { id } });
-        if (!data) {
-          delete pollingRef.current[id];
-          return;
-        }
-
-        updateHistoryItem(id, { 
-          status: data.status, 
-          url: data.url, 
-          progress: data.progress 
-        });
-
-        if (data.status === 'completed' || data.status === 'failed') {
-          delete pollingRef.current[id];
-          if (data.status === 'completed') toast.success("Generation completed!");
-          if (data.status === 'failed') toast.error("Generation failed");
-        } else {
-          setTimeout(poll, 3000);
-        }
-      } catch (e) {
-        console.error("Polling error", e);
-        delete pollingRef.current[id];
-      }
-    };
-
-    poll();
-  };
 
   const handleDownload = (url: string) => {
     if (!url) return;
