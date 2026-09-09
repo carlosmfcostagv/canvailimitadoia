@@ -8,6 +8,8 @@ import { useAIGenerator } from './AIGeneratorContext'
 import { useServerFn } from '@tanstack/react-start'
 import { enhancePromptFn, generateVideoFn } from '@/lib/ai.functions'
 import { toast } from 'sonner'
+import { CreditNotice } from '@/components/billing/CreditNotice'
+import { useConsumeCredits, useCostFor } from '@/hooks/useBilling'
 
 export function ImageToVideo() {
   const { sharedPrompt, sharedImage, setSharedImage, addToHistory } = useAIGenerator();
@@ -20,6 +22,8 @@ export function ImageToVideo() {
   
   const enhancePrompt = useServerFn(enhancePromptFn);
   const generateVideo = useServerFn(generateVideoFn);
+  const { cost, enough } = useCostFor('i2v');
+  const consume = useConsumeCredits();
 
   useEffect(() => {
     if (sharedPrompt) setPrompt(sharedPrompt);
@@ -41,13 +45,18 @@ export function ImageToVideo() {
       toast.error("Please upload an image first");
       return;
     }
+    if (!enough) {
+      toast.error(`Créditos insuficientes. Esta geração custa ${cost} créditos.`);
+      return;
+    }
     setLoading(true);
     try {
+      await consume.mutateAsync('i2v');
       const result = await generateVideo({ data: { prompt, settings: { ...settings, type: 'i2v', image: sharedImage } } });
       addToHistory({ ...result, type: 'i2v' });
-      toast.success("Animation started!");
+      toast.success(`Animation started! -${cost} créditos`);
     } catch (e) {
-      toast.error("Generation failed");
+      toast.error(e instanceof Error ? e.message : "Generation failed");
     } finally {
       setLoading(false);
     }
@@ -148,9 +157,11 @@ export function ImageToVideo() {
           </div>
         </div>
 
-        <Button size="lg" className="w-full gap-2 h-14 text-lg" onClick={handleGenerate} disabled={loading}>
+        <CreditNotice operation="i2v" />
+
+        <Button size="lg" className="w-full gap-2 h-14 text-lg" onClick={handleGenerate} disabled={loading || !enough}>
           <PlayCircle className="w-5 h-5" />
-          {loading ? 'Processing...' : 'GENERATE VIDEO'}
+          {loading ? 'Processing...' : !enough ? 'CRÉDITOS INSUFICIENTES' : 'GENERATE VIDEO'}
         </Button>
       </div>
     </div>

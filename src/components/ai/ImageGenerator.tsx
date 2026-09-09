@@ -7,6 +7,8 @@ import { useAIGenerator } from './AIGeneratorContext'
 import { useServerFn } from '@tanstack/react-start'
 import { enhancePromptFn, generateImageFn } from '@/lib/ai.functions'
 import { toast } from 'sonner'
+import { CreditNotice } from '@/components/billing/CreditNotice'
+import { useConsumeCredits, useCostFor } from '@/hooks/useBilling'
 
 export function ImageGenerator() {
   const { sharedPrompt, addToHistory } = useAIGenerator();
@@ -21,6 +23,8 @@ export function ImageGenerator() {
   
   const enhancePrompt = useServerFn(enhancePromptFn);
   const generateImage = useServerFn(generateImageFn);
+  const { cost, enough } = useCostFor('image');
+  const consume = useConsumeCredits();
 
   useEffect(() => {
     if (sharedPrompt) setPrompt(sharedPrompt);
@@ -42,13 +46,18 @@ export function ImageGenerator() {
       toast.error("Please enter a prompt");
       return;
     }
+    if (!enough) {
+      toast.error(`Créditos insuficientes. Esta geração custa ${cost} créditos.`);
+      return;
+    }
     setLoading(true);
     try {
+      await consume.mutateAsync('image');
       const result = await generateImage({ data: { prompt, settings } });
       addToHistory(result);
-      toast.success("Image generated!");
+      toast.success(`Image generated! -${cost} créditos`);
     } catch (e) {
-      toast.error("Generation failed");
+      toast.error(e instanceof Error ? e.message : "Generation failed");
     } finally {
       setLoading(false);
     }
@@ -128,9 +137,11 @@ export function ImageGenerator() {
           </div>
         </div>
 
-        <Button size="lg" className="w-full gap-2 h-14 text-lg" onClick={handleGenerate} disabled={loading}>
+        <CreditNotice operation="image" />
+
+        <Button size="lg" className="w-full gap-2 h-14 text-lg" onClick={handleGenerate} disabled={loading || !enough}>
           <ImageIcon className="w-5 h-5" />
-          {loading ? 'Generating...' : 'GENERATE IMAGE'}
+          {loading ? 'Generating...' : !enough ? 'CRÉDITOS INSUFICIENTES' : 'GENERATE IMAGE'}
         </Button>
       </div>
     </div>
