@@ -95,7 +95,9 @@ function PlansPage() {
               </ul>
               <Button
                 className="w-full gap-2"
-                disabled={plan.price_cents === 0 && renew.isPending}
+                disabled={
+                  plan.price_cents === 0 && (renew.isPending || Boolean(data?.freePlanUsed))
+                }
                 onClick={() =>
                   plan.price_cents === 0
                     ? handleRenew(plan.code)
