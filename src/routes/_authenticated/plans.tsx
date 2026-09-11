@@ -110,7 +110,9 @@ function PlansPage() {
                   <MessageCircle className="w-4 h-4" />
                 )}
                 {plan.price_cents === 0
-                  ? 'Ativar plano grátis'
+                  ? data?.freePlanUsed
+                    ? 'Plano grátis já utilizado'
+                    : 'Ativar plano grátis'
                   : 'Comprar via WhatsApp'}
               </Button>
             </div>
