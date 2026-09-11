@@ -27,6 +27,10 @@ function PlansPage() {
   const handleRenew = async (code: string) => {
     try {
       const result = await renew.mutateAsync(code)
+      if (!result.ok) {
+        toast.error(result.message)
+        return
+      }
       toast.success(
         `${result.plan} ativado. Saldo: ${result.credits} créditos, válido até ${new Date(
           result.expires_at,

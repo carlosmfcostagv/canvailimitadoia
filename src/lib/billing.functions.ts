@@ -70,7 +70,7 @@ export const getBillingStateFn = createServerFn({ method: "GET" })
 
     await supabase.rpc("bootstrap_user");
 
-    const [profileRes, plansRes, costsRes, subRes, rolesRes] = await Promise.all([
+    const [profileRes, plansRes, costsRes, subRes, rolesRes, freeRes] = await Promise.all([
       supabase.from("profiles").select("credits").eq("id", userId).maybeSingle(),
       supabase.from("plans").select("*").order("sort_order"),
       supabase.from("generation_costs").select("*").order("label"),
