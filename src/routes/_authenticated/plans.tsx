@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
-import { Check, CreditCard } from 'lucide-react'
+import { Check, CreditCard, MessageCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatBRL, useBilling, useRenewPlan } from '@/hooks/useBilling'
 
@@ -18,6 +18,8 @@ export const Route = createFileRoute('/_authenticated/plans')({
   }),
 })
 
+const WHATSAPP_NUMBER = '5533999604603'
+
 function PlansPage() {
   const { data, isLoading } = useBilling()
   const renew = useRenewPlan()
@@ -33,6 +35,12 @@ function PlansPage() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Não foi possível renovar')
     }
+  }
+
+  const openWhatsApp = (planName: string, price: string, credits: number) => {
+    const message = `Olá! Quero contratar o plano ${planName} (${price} - ${credits} créditos).`
+    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   return (
@@ -83,11 +91,21 @@ function PlansPage() {
               </ul>
               <Button
                 className="w-full gap-2"
-                disabled={renew.isPending}
-                onClick={() => handleRenew(plan.code)}
+                disabled={plan.price_cents === 0 && renew.isPending}
+                onClick={() =>
+                  plan.price_cents === 0
+                    ? handleRenew(plan.code)
+                    : openWhatsApp(plan.name, formatBRL(plan.price_cents), plan.credits)
+                }
               >
-                <CreditCard className="w-4 h-4" />
-                {plan.price_cents === 0 ? 'Ativar plano grátis' : 'Contratar / Renovar'}
+                {plan.price_cents === 0 ? (
+                  <CreditCard className="w-4 h-4" />
+                ) : (
+                  <MessageCircle className="w-4 h-4" />
+                )}
+                {plan.price_cents === 0
+                  ? 'Ativar plano grátis'
+                  : 'Comprar via WhatsApp'}
               </Button>
             </div>
           ))}
