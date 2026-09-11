@@ -26,7 +26,12 @@ export type BillingState = {
   plans: Plan[];
   costs: GenerationCost[];
   subscription: { plan_name: string; expires_at: string } | null;
+  freePlanUsed: boolean;
 };
+
+export type RenewPlanResult =
+  | { ok: true; credits: number; expires_at: string; plan: string }
+  | { ok: false; message: string };
 
 export type SubscriberCreditAccount = {
   id: string;
