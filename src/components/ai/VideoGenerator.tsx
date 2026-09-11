@@ -8,7 +8,7 @@ import { useServerFn } from '@tanstack/react-start'
 import { enhancePromptFn, generateVideoFn } from '@/lib/ai.functions'
 import { toast } from 'sonner'
 import { CreditNotice } from '@/components/billing/CreditNotice'
-import { useConsumeCredits, useCostFor } from '@/hooks/useBilling'
+import { useCostFor, useRefreshBilling } from '@/hooks/useBilling'
 
 export function VideoGenerator() {
   const { sharedPrompt, addToHistory } = useAIGenerator();
@@ -22,7 +22,7 @@ export function VideoGenerator() {
   const enhancePrompt = useServerFn(enhancePromptFn);
   const generateVideo = useServerFn(generateVideoFn);
   const { cost, enough } = useCostFor('video');
-  const consume = useConsumeCredits();
+  const refreshBilling = useRefreshBilling();
 
   useEffect(() => {
     if (sharedPrompt) setPrompt(sharedPrompt);
@@ -52,9 +52,10 @@ export function VideoGenerator() {
     try {
       const result = await generateVideo({ data: { prompt, settings } });
       addToHistory(result);
-      await consume.mutateAsync('video');
+      await refreshBilling();
       toast.success(`Video generation started! -${cost} créditos`);
     } catch (e) {
+      await refreshBilling();
       toast.error(e instanceof Error ? e.message : "Generation failed");
     } finally {
       setLoading(false);

@@ -8,7 +8,7 @@ import { useServerFn } from '@tanstack/react-start'
 import { enhancePromptFn, generateImageFn } from '@/lib/ai.functions'
 import { toast } from 'sonner'
 import { CreditNotice } from '@/components/billing/CreditNotice'
-import { useConsumeCredits, useCostFor } from '@/hooks/useBilling'
+import { useCostFor, useRefreshBilling } from '@/hooks/useBilling'
 
 export function ImageGenerator() {
   const { sharedPrompt, addToHistory } = useAIGenerator();
@@ -24,7 +24,7 @@ export function ImageGenerator() {
   const enhancePrompt = useServerFn(enhancePromptFn);
   const generateImage = useServerFn(generateImageFn);
   const { cost, enough } = useCostFor('image');
-  const consume = useConsumeCredits();
+  const refreshBilling = useRefreshBilling();
 
   useEffect(() => {
     if (sharedPrompt) setPrompt(sharedPrompt);
@@ -54,9 +54,10 @@ export function ImageGenerator() {
     try {
       const result = await generateImage({ data: { prompt, settings } });
       addToHistory(result);
-      await consume.mutateAsync('image');
+      await refreshBilling();
       toast.success(`Image generated! -${cost} créditos`);
     } catch (e) {
+      await refreshBilling();
       toast.error(e instanceof Error ? e.message : "Generation failed");
     } finally {
       setLoading(false);
