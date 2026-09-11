@@ -34,6 +34,11 @@ export function useConsumeCredits() {
   });
 }
 
+export function useRefreshBilling() {
+  const qc = useQueryClient();
+  return () => qc.invalidateQueries({ queryKey: billingQueryKey });
+}
+
 export function useRenewPlan() {
   const renew = useServerFn(renewPlanFn);
   const qc = useQueryClient();
