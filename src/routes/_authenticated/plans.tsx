@@ -91,11 +91,21 @@ function PlansPage() {
               </ul>
               <Button
                 className="w-full gap-2"
-                disabled={renew.isPending}
-                onClick={() => handleRenew(plan.code)}
+                disabled={plan.price_cents === 0 && renew.isPending}
+                onClick={() =>
+                  plan.price_cents === 0
+                    ? handleRenew(plan.code)
+                    : openWhatsApp(plan.name, formatBRL(plan.price_cents), plan.credits)
+                }
               >
-                <CreditCard className="w-4 h-4" />
-                {plan.price_cents === 0 ? 'Ativar plano grátis' : 'Contratar / Renovar'}
+                {plan.price_cents === 0 ? (
+                  <CreditCard className="w-4 h-4" />
+                ) : (
+                  <MessageCircle className="w-4 h-4" />
+                )}
+                {plan.price_cents === 0
+                  ? 'Ativar plano grátis'
+                  : 'Comprar via WhatsApp'}
               </Button>
             </div>
           ))}
