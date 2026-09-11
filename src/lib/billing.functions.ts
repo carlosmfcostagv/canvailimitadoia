@@ -26,7 +26,12 @@ export type BillingState = {
   plans: Plan[];
   costs: GenerationCost[];
   subscription: { plan_name: string; expires_at: string } | null;
+  freePlanUsed: boolean;
 };
+
+export type RenewPlanResult =
+  | { ok: true; credits: number; expires_at: string; plan: string }
+  | { ok: false; message: string };
 
 export type SubscriberCreditAccount = {
   id: string;
@@ -65,7 +70,7 @@ export const getBillingStateFn = createServerFn({ method: "GET" })
 
     await supabase.rpc("bootstrap_user");
 
-    const [profileRes, plansRes, costsRes, subRes, rolesRes] = await Promise.all([
+    const [profileRes, plansRes, costsRes, subRes, rolesRes, freeRes] = await Promise.all([
       supabase.from("profiles").select("credits").eq("id", userId).maybeSingle(),
       supabase.from("plans").select("*").order("sort_order"),
       supabase.from("generation_costs").select("*").order("label"),
@@ -77,6 +82,12 @@ export const getBillingStateFn = createServerFn({ method: "GET" })
         .order("expires_at", { ascending: false })
         .limit(1),
       supabase.from("user_roles").select("role").eq("user_id", userId),
+      supabase
+        .from("subscriptions")
+        .select("id, plans!inner(price_cents)")
+        .eq("user_id", userId)
+        .eq("plans.price_cents", 0)
+        .limit(1),
     ]);
 
     const sub = subRes.data?.[0] as { expires_at: string; plans: { name: string } | null } | undefined;
@@ -89,18 +100,20 @@ export const getBillingStateFn = createServerFn({ method: "GET" })
       subscription: sub
         ? { plan_name: sub.plans?.name ?? "Plano", expires_at: sub.expires_at }
         : null,
+      freePlanUsed: (freeRes.data ?? []).length > 0,
     };
   });
 
 export const renewPlanFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { code: string }) => z.object({ code: z.string() }).parse(data))
-  .handler(async ({ context, data }) => {
+  .handler(async ({ context, data }): Promise<RenewPlanResult> => {
     const { data: result, error } = await context.supabase.rpc("renew_plan", {
       _plan_code: data.code,
     });
-    if (error) throw new Error(error.message);
-    return result as { credits: number; expires_at: string; plan: string };
+    if (error) return { ok: false, message: error.message };
+    const value = result as { credits: number; expires_at: string; plan: string };
+    return { ok: true, ...value };
   });
 
 export const consumeCreditsFn = createServerFn({ method: "POST" })

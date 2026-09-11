@@ -27,6 +27,10 @@ function PlansPage() {
   const handleRenew = async (code: string) => {
     try {
       const result = await renew.mutateAsync(code)
+      if (!result.ok) {
+        toast.error(result.message)
+        return
+      }
       toast.success(
         `${result.plan} ativado. Saldo: ${result.credits} créditos, válido até ${new Date(
           result.expires_at,
@@ -91,7 +95,9 @@ function PlansPage() {
               </ul>
               <Button
                 className="w-full gap-2"
-                disabled={plan.price_cents === 0 && renew.isPending}
+                disabled={
+                  plan.price_cents === 0 && (renew.isPending || Boolean(data?.freePlanUsed))
+                }
                 onClick={() =>
                   plan.price_cents === 0
                     ? handleRenew(plan.code)
@@ -104,7 +110,9 @@ function PlansPage() {
                   <MessageCircle className="w-4 h-4" />
                 )}
                 {plan.price_cents === 0
-                  ? 'Ativar plano grátis'
+                  ? data?.freePlanUsed
+                    ? 'Plano grátis já utilizado'
+                    : 'Ativar plano grátis'
                   : 'Comprar via WhatsApp'}
               </Button>
             </div>
