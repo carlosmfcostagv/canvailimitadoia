@@ -2,7 +2,18 @@ import { useEffect, useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useServerFn } from '@tanstack/react-start'
-import { Coins, Search } from 'lucide-react'
+import { Coins, Search, Trash2 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,6 +22,7 @@ import { toast } from 'sonner'
 import { billingQueryKey, useBilling } from '@/hooks/useBilling'
 import {
   adjustSubscriberCreditsFn,
+  deleteSubscriberFn,
   listSubscribersFn,
   updateCostFn,
   updatePlanFn,
@@ -40,6 +52,7 @@ function AdminPage() {
   const updateCost = useServerFn(updateCostFn)
   const listSubscribers = useServerFn(listSubscribersFn)
   const adjustCredits = useServerFn(adjustSubscriberCreditsFn)
+  const deleteSubscriber = useServerFn(deleteSubscriberFn)
   const [search, setSearch] = useState('')
   const subscribersQuery = useQuery({
     queryKey: ['admin-subscribers', search],
@@ -81,6 +94,15 @@ function AdminPage() {
       toast.success('Créditos atualizados e registrados no histórico')
       qc.invalidateQueries({ queryKey: ['admin-subscribers'] })
       qc.invalidateQueries({ queryKey: billingQueryKey })
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+
+  const removeSubscriber = useMutation({
+    mutationFn: (userId: string) => deleteSubscriber({ data: { userId } }),
+    onSuccess: () => {
+      toast.success('Assinante excluído')
+      qc.invalidateQueries({ queryKey: ['admin-subscribers'] })
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -130,9 +152,11 @@ function AdminPage() {
               key={subscriber.id}
               subscriber={subscriber}
               saving={adjustBalance.isPending}
+              deleting={removeSubscriber.isPending}
               onSave={(amount, reason) =>
                 adjustBalance.mutate({ userId: subscriber.id, amount, reason })
               }
+              onDelete={() => removeSubscriber.mutate(subscriber.id)}
             />
           ))}
         </div>
@@ -161,11 +185,15 @@ function AdminPage() {
 function SubscriberCreditRow({
   subscriber,
   saving,
+  deleting,
   onSave,
+  onDelete,
 }: {
   subscriber: SubscriberCreditAccount
   saving: boolean
+  deleting: boolean
   onSave: (amount: number, reason: string) => void
+  onDelete: () => void
 }) {
   const [amount, setAmount] = useState(0)
   const [reason, setReason] = useState('')
@@ -191,9 +219,36 @@ function SubscriberCreditRow({
           <p className="font-medium">{subscriber.full_name || 'Assinante'}</p>
           <p className="text-sm text-muted-foreground">{subscriber.email || 'E-mail não informado'}</p>
         </div>
-        <div className="flex items-center gap-2 font-semibold">
-          <Coins className="h-4 w-4 text-primary" />
-          {subscriber.credits} créditos
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 font-semibold">
+            <Coins className="h-4 w-4 text-primary" />
+            {subscriber.credits} créditos
+          </div>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={deleting}
+                aria-label={`Excluir ${subscriber.email || subscriber.full_name || 'assinante'}`}
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Excluir assinante?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  A conta de {subscriber.email || subscriber.full_name || 'este assinante'} e todo o
+                  histórico de créditos serão removidos permanentemente.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={onDelete}>Excluir</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-[140px_1fr_auto] sm:items-end">

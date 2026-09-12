@@ -211,3 +211,25 @@ export const adjustSubscriberCreditsFn = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return result as { user_id: string; amount: number; credits: number };
   });
+
+export const deleteSubscriberFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userId: string }) =>
+    z.object({ userId: z.string().uuid() }).parse(data),
+  )
+  .handler(async ({ context, data }) => {
+    await requireAdmin(context);
+    if (data.userId === context.userId) {
+      throw new Error("Você não pode excluir a sua própria conta");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    await supabaseAdmin.from("credit_transactions").delete().eq("user_id", data.userId);
+    await supabaseAdmin.from("subscriptions").delete().eq("user_id", data.userId);
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId);
+    await supabaseAdmin.from("profiles").delete().eq("id", data.userId);
+
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
