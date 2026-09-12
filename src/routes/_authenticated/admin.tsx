@@ -152,9 +152,11 @@ function AdminPage() {
               key={subscriber.id}
               subscriber={subscriber}
               saving={adjustBalance.isPending}
+              deleting={removeSubscriber.isPending}
               onSave={(amount, reason) =>
                 adjustBalance.mutate({ userId: subscriber.id, amount, reason })
               }
+              onDelete={() => removeSubscriber.mutate(subscriber.id)}
             />
           ))}
         </div>
