@@ -219,9 +219,36 @@ function SubscriberCreditRow({
           <p className="font-medium">{subscriber.full_name || 'Assinante'}</p>
           <p className="text-sm text-muted-foreground">{subscriber.email || 'E-mail não informado'}</p>
         </div>
-        <div className="flex items-center gap-2 font-semibold">
-          <Coins className="h-4 w-4 text-primary" />
-          {subscriber.credits} créditos
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 font-semibold">
+            <Coins className="h-4 w-4 text-primary" />
+            {subscriber.credits} créditos
+          </div>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={deleting}
+                aria-label={`Excluir ${subscriber.email || subscriber.full_name || 'assinante'}`}
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Excluir assinante?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  A conta de {subscriber.email || subscriber.full_name || 'este assinante'} e todo o
+                  histórico de créditos serão removidos permanentemente.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={onDelete}>Excluir</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-[140px_1fr_auto] sm:items-end">
