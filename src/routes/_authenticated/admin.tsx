@@ -2,7 +2,18 @@ import { useEffect, useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useServerFn } from '@tanstack/react-start'
-import { Coins, Search } from 'lucide-react'
+import { Coins, Search, Trash2 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,6 +22,7 @@ import { toast } from 'sonner'
 import { billingQueryKey, useBilling } from '@/hooks/useBilling'
 import {
   adjustSubscriberCreditsFn,
+  deleteSubscriberFn,
   listSubscribersFn,
   updateCostFn,
   updatePlanFn,
