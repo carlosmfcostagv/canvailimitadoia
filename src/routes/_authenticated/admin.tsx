@@ -52,6 +52,7 @@ function AdminPage() {
   const updateCost = useServerFn(updateCostFn)
   const listSubscribers = useServerFn(listSubscribersFn)
   const adjustCredits = useServerFn(adjustSubscriberCreditsFn)
+  const deleteSubscriber = useServerFn(deleteSubscriberFn)
   const [search, setSearch] = useState('')
   const subscribersQuery = useQuery({
     queryKey: ['admin-subscribers', search],
@@ -93,6 +94,15 @@ function AdminPage() {
       toast.success('Créditos atualizados e registrados no histórico')
       qc.invalidateQueries({ queryKey: ['admin-subscribers'] })
       qc.invalidateQueries({ queryKey: billingQueryKey })
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+
+  const removeSubscriber = useMutation({
+    mutationFn: (userId: string) => deleteSubscriber({ data: { userId } }),
+    onSuccess: () => {
+      toast.success('Assinante excluído')
+      qc.invalidateQueries({ queryKey: ['admin-subscribers'] })
     },
     onError: (e: Error) => toast.error(e.message),
   })
