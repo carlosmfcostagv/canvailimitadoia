@@ -45,20 +45,21 @@ function newId() {
   return Math.random().toString(36).slice(2, 10);
 }
 
+function sizeFor(aspectRatio?: string) {
+  if (aspectRatio === "16:9") return "1536x1024";
+  if (aspectRatio === "9:16") return "1024x1536";
+  return "1024x1024";
+}
+
 export const AIProviderService = {
   async generateImage(params: { prompt: string; settings?: any }) {
     const s = params.settings ?? {};
     const styleHints = [s.style, s.aspectRatio, s.model].filter(Boolean).join(", ");
     const prompt = styleHints ? `${params.prompt}. Style: ${styleHints}` : params.prompt;
 
-    const json = await callGateway({
-      model: "google/gemini-2.5-flash-image",
-      messages: [{ role: "user", content: prompt }],
-      modalities: ["image", "text"],
-    });
-
-    const url: string | undefined = json?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    if (!url) throw new Error("O modelo não retornou nenhuma imagem.");
+    // Images always come from the API keys registered in Administração.
+    const { generateImageWithPool } = await import("./image-keys.server");
+    const url = await generateImageWithPool(prompt, sizeFor(s.aspectRatio));
 
     return {
       id: newId(),
