@@ -68,6 +68,48 @@ export type Database = {
         }
         Relationships: []
       }
+      image_api_keys: {
+        Row: {
+          api_key: string
+          created_at: string
+          id: string
+          label: string
+          last_error: string | null
+          last_used_at: string | null
+          model: string | null
+          position: number
+          provider: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          api_key: string
+          created_at?: string
+          id?: string
+          label: string
+          last_error?: string | null
+          last_used_at?: string | null
+          model?: string | null
+          position?: number
+          provider?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string
+          created_at?: string
+          id?: string
+          label?: string
+          last_error?: string | null
+          last_used_at?: string | null
+          model?: string | null
+          position?: number
+          provider?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
           code: string
