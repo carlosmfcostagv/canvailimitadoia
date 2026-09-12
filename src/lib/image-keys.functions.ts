@@ -100,7 +100,7 @@ export const updateImageApiKeyFn = createServerFn({ method: "POST" })
     await assertAdmin(context as any);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    const patch: Record<string, any> = { updated_at: new Date().toISOString() };
     if (data.label !== undefined) patch['label'] = data.label;
     if (data.provider !== undefined) patch['provider'] = data.provider;
     if (data.apiKey !== undefined) patch['api_key'] = data.apiKey;
@@ -111,7 +111,7 @@ export const updateImageApiKeyFn = createServerFn({ method: "POST" })
       if (data.status === "active") patch['last_error'] = null;
     }
 
-    const { error } = await supabaseAdmin.from("image_api_keys").update(patch).eq("id", data.id);
+    const { error } = await supabaseAdmin.from("image_api_keys").update(patch as never).eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
