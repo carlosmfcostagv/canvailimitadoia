@@ -185,11 +185,15 @@ function AdminPage() {
 function SubscriberCreditRow({
   subscriber,
   saving,
+  deleting,
   onSave,
+  onDelete,
 }: {
   subscriber: SubscriberCreditAccount
   saving: boolean
+  deleting: boolean
   onSave: (amount: number, reason: string) => void
+  onDelete: () => void
 }) {
   const [amount, setAmount] = useState(0)
   const [reason, setReason] = useState('')
