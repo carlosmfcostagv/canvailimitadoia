@@ -42,7 +42,8 @@ export function ImageApiKeysSection() {
   const [model, setModel] = useState('')
 
   const create = useMutation({
-    mutationFn: () => createKey({ data: { label, provider, apiKey, model: model || undefined } }),
+    mutationFn: () =>
+      createKey({ data: { label, provider, apiKey, ...(model ? { model } : {}) } }),
     onSuccess: () => {
       toast.success('API cadastrada')
       setLabel('')
