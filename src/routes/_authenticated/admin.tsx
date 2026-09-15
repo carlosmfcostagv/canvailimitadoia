@@ -20,6 +20,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
 import { billingQueryKey, useBilling } from '@/hooks/useBilling'
+import { ImageApiKeysSection } from '@/components/admin/ImageApiKeys'
 import {
   adjustSubscriberCreditsFn,
   deleteSubscriberFn,
@@ -164,6 +165,9 @@ function AdminPage() {
           <p className="text-sm text-muted-foreground">Nenhum assinante encontrado.</p>
         )}
       </section>
+
+      <ImageApiKeysSection />
+
 
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Planos</h2>
